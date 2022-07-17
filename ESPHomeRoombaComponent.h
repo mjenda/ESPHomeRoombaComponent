@@ -13,7 +13,7 @@ std::vector<uint8_t> getCustomCommands(const std::string& input) {
   while (std::getline(ss, token, ',')) {
     int number = atoi(token.c_str());
     if (number != 0 || token == "0")
-        vect.push_back(number);
+      vect.push_back(number);
   }
 
   return vect;
@@ -30,6 +30,8 @@ class RoombaComponent : public PollingComponent,
   std::string stateTopic;
   std::string commandTopic;
   Roomba roomba;
+  bool isInSleepMode = true;
+  bool dockedState = false;
 
  public:
   Sensor* distanceSensor;
@@ -40,6 +42,7 @@ class RoombaComponent : public PollingComponent,
   BinarySensor* chargingBinarySensor;
   BinarySensor* dockedBinarySensor;
   BinarySensor* cleaningBinarySensor;
+  BinarySensor* sleepingBinarySensor;
 
   static RoombaComponent* instance(const std::string& stateTopic,
                                    const std::string& commandTopic,
@@ -75,7 +78,6 @@ class RoombaComponent : public PollingComponent,
     uint16_t capacity;
     uint8_t charging;
     bool cleaningState;
-    bool dockedState;
     bool chargingState;
     bool publishJson;
     // Flush serial buffers
@@ -95,10 +97,17 @@ class RoombaComponent : public PollingComponent,
 
     // Serial reading timeout --
     // https://community.home-assistant.io/t/add-wifi-to-an-older-roomba/23282/52
-    bool success = this->roomba.getSensorsList(sensors, sizeof(sensors), values,
-                                               sizeof(values));
-    if (!success) {
-      ESP_LOGD(TAG, "Unable to read sensors from the roomba.");
+    isInSleepMode = !this->roomba.getSensorsList(sensors, sizeof(sensors),
+                                                 values, sizeof(values));
+
+    if (this->sleepingBinarySensor->state != isInSleepMode) {
+      this->sleepingBinarySensor->publish_state(isInSleepMode);
+    }
+
+    if (isInSleepMode) {
+      ESP_LOGD(TAG,
+               "Unable to read sensors from the roomba. Roomba is probably in "
+               "sleeping mode");
       return;
     }
 
@@ -173,12 +182,24 @@ class RoombaComponent : public PollingComponent,
   }
 
   void wakeUp() {
-    digitalWrite(this->brcPin, HIGH);
-    delay(100);
-    digitalWrite(this->brcPin, LOW);
-    delay(500);
-    digitalWrite(this->brcPin, HIGH);
-    delay(100);
+    ESP_LOGD(TAG, "dockedState %d", dockedState);
+    ESP_LOGD(TAG, "isInSleepMode %d", isInSleepMode);
+    if (isInSleepMode) {
+      digitalWrite(this->brcPin, HIGH);
+      delay(100);
+      digitalWrite(this->brcPin, LOW);
+      delay(500);
+      digitalWrite(this->brcPin, HIGH);
+      delay(100);
+    }
+
+    // I docked state roomba likes to be poked after wake up.
+    // Calling dock here is harmless but it activates green button and prepares
+    // Roomba for other commands
+    if (dockedState) {
+      this->roomba.dock();
+      delay(1000);
+    }
   }
 
   void on_message(const std::string& payload) {
@@ -237,5 +258,6 @@ class RoombaComponent : public PollingComponent,
     this->chargingBinarySensor = new BinarySensor();
     this->dockedBinarySensor = new BinarySensor();
     this->cleaningBinarySensor = new BinarySensor();
+    this->sleepingBinarySensor = new BinarySensor();
   }
 };

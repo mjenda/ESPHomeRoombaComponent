@@ -73,9 +73,14 @@ binary_sensor:
   - platform: custom
     lambda: |-
        auto r = ${init}
-       return {r->chargingBinarySensor, r->dockedBinarySensor, r->cleaningBinarySensor};
+       return {
+        r->chargingBinarySensor,
+        r->dockedBinarySensor,
+        r->cleaningBinarySensor,
+        r->sleepingBinarySensor};
 
     binary_sensors:
       - name: "${name} charging"
       - name: "${name} docked"
       - name: "${name} cleaning"
+      - name: "${name} sleeping"
