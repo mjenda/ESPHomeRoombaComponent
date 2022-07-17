@@ -1,8 +1,29 @@
 #include <Roomba.h>
 #include "esphome.h"
 
+#include <sstream>
+
+namespace {
+std::vector<uint8_t> getCustomCommands(const std::string& input) {
+  std::vector<uint8_t> vect;
+
+  std::istringstream ss(input);
+  std::string token;
+
+  while (std::getline(ss, token, ',')) {
+    int number = atoi(token.c_str());
+    if (number != 0 || token == "0")
+        vect.push_back(number);
+  }
+
+  return vect;
+}
+}  // namespace
+
 static const char* TAG = "component.Roomba";
-class RoombaComponent : public PollingComponent, public CustomMQTTDevice {
+class RoombaComponent : public PollingComponent,
+                        public CustomMQTTDevice,
+                        public CustomAPIDevice {
  protected:
   uint8_t brcPin;
   uint32_t updateInterval;
@@ -41,6 +62,7 @@ class RoombaComponent : public PollingComponent, public CustomMQTTDevice {
     ESP_LOGD(TAG, "Attempting to subscribe to MQTT.");
 
     subscribe(this->commandTopic, &RoombaComponent::on_message);
+    register_service(&RoombaComponent::onCustomCommand, "command", {"command"});
   }
 
   void update() override {
@@ -180,6 +202,20 @@ class RoombaComponent : public PollingComponent, public CustomMQTTDevice {
 
     delay(500);
     this->update();
+  }
+
+  // It gets list of uint8_t separated by ',', eg. playSong - 141,0
+  void onCustomCommand(std::string str) {
+    ESP_LOGD(TAG, "onCustomCommand - %s", str.c_str());
+
+    wakeUp();
+
+    const auto commands = getCustomCommands(str);
+
+    for (const auto command : commands) {
+      ESP_LOGD(TAG, "sendingCustom - %d", command);
+      Serial.write(command);
+    }
   }
 
  private:
