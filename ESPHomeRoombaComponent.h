@@ -35,6 +35,8 @@ class RoombaComponent : public PollingComponent, public CustomMQTTDevice
 
         this->roomba.start();
 
+        wakeUp();
+
         ESP_LOGD(TAG, "Attempting to subscribe to MQTT.");
 
         subscribe(this->commandTopic, &RoombaComponent::on_message);
