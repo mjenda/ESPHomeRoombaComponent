@@ -18,8 +18,10 @@ wifi:
   password: !secret wifi_password
 
 mqtt:
-  broker: !secret mqtt_broker
+  broker: !secret mqtt-server-ip
   discovery: true
+  username: !secret mqtt-username
+  password: !secret mqtt-password
 
 logger:
   baud_rate: 0
