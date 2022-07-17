@@ -6,6 +6,9 @@ esphome:
     - ESPHomeRoombaComponent.h
   libraries:
     - Roomba=https://github.com/Apocrathia/Roomba
+  platformio_options:
+    build_flags:
+      - "-DHAVE_HWSERIAL0"
 
 substitutions:
   # IMPORTANT NOTE: If you change the substitution name value, the state_topic/command_topic need to change as well.
