@@ -29,6 +29,8 @@ logger:
 
 ota:
 
+api:
+
 custom_component:
   - lambda: |-
       auto r = ${init}
