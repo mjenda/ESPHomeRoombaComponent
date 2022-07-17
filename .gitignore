@@ -1,4 +1,4 @@
 .vscode
-example/.esphome
-example/roomba
-example/secrets.yaml
+.esphome
+roomba
+secrets.yaml

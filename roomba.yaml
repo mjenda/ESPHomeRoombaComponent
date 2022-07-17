@@ -3,7 +3,7 @@ esphome:
   platform: ESP8266
   board: d1_mini
   includes:
-    - ../ESPHomeRoombaComponent.h
+    - ESPHomeRoombaComponent.h
   libraries:
     - Roomba=https://github.com/Apocrathia/Roomba
 
