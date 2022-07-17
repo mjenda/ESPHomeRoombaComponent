@@ -9,6 +9,6 @@
     - battery
     - clean_spot
   # IMPORTANT NOTE: If you change the substitution name value in roomba.yml, the availability_topic/state_topic/command_topic need to change as well.
-  availability_topic: "roomba_001/status"
-  state_topic: "roomba_001/state"
-  command_topic: "roomba_001/command"
+  availability_topic: "roomba/status"
+  state_topic: "roomba/state"
+  command_topic: "roomba/command"

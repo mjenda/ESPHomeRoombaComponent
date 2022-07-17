@@ -1,5 +1,5 @@
 esphome:
-  name: roomba_001
+  name: roomba
   platform: ESP8266
   board: d1_mini
   includes:
@@ -9,9 +9,9 @@ esphome:
 
 substitutions:
   # IMPORTANT NOTE: If you change the substitution name value, the state_topic/command_topic need to change as well.
-  name: "roomba_001"
+  name: "roomba"
   # state topic, command topic, BRC pin, polling interval in milliseconds
-  init: 'RoombaComponent::instance("roomba_001/state", "roomba_001/command", D5, 1000);'
+  init: 'RoombaComponent::instance("roomba/state", "roomba/command", D5, 1000);'
 
 wifi:
   ssid: !secret wifi_ssid
