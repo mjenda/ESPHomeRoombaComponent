@@ -143,17 +143,20 @@ class RoombaComponent : public PollingComponent, public CustomMQTTDevice
         }
     }
 
-    void on_message(const std::string &payload) 
-    {
-        ESP_LOGD(TAG, "Got values %s", payload.c_str());
-
-        // Roomba Wakeup
+    void wakeUp() {
         digitalWrite(this->brcPin, HIGH);
         delay(100);
         digitalWrite(this->brcPin, LOW);
         delay(500);
         digitalWrite(this->brcPin, HIGH);
         delay(100);
+    }
+
+    void on_message(const std::string &payload) 
+    {
+        ESP_LOGD(TAG, "Got values %s", payload.c_str());
+
+        wakeUp();
 
         if (payload == "turn_on" || payload == "turn_off" || 
             payload == "start" || payload == "stop")
