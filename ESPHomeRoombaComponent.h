@@ -18,7 +18,21 @@ std::vector<uint8_t> getCustomCommands(const std::string& input) {
 
   return vect;
 }
+
 }  // namespace
+
+// Sensor decorator, which publishes state if it has changed or has not been
+// initialized yet
+template <typename Base>
+class RoombaSensor : public Base {
+ public:
+ template <typename T>
+  void publishState(T stateToPublish) {
+    if (Base::state != stateToPublish || !Base::has_state()) {
+      Base::publish_state(stateToPublish);
+    }
+  }
+};
 
 static const char* TAG = "component.Roomba";
 class RoombaComponent : public PollingComponent,
@@ -34,15 +48,15 @@ class RoombaComponent : public PollingComponent,
   bool dockedState = false;
 
  public:
-  Sensor* distanceSensor;
-  Sensor* voltageSensor;
-  Sensor* currentSensor;
-  Sensor* chargeSensor;
-  Sensor* capacitySensor;
-  BinarySensor* chargingBinarySensor;
-  BinarySensor* dockedBinarySensor;
-  BinarySensor* cleaningBinarySensor;
-  BinarySensor* sleepingBinarySensor;
+  RoombaSensor<Sensor>* distanceSensor;
+  RoombaSensor<Sensor>* voltageSensor;
+  RoombaSensor<Sensor>* currentSensor;
+  RoombaSensor<Sensor>* chargeSensor;
+  RoombaSensor<Sensor>* capacitySensor;
+  RoombaSensor<BinarySensor>* chargingBinarySensor;
+  RoombaSensor<BinarySensor>* dockedBinarySensor;
+  RoombaSensor<BinarySensor>* cleaningBinarySensor;
+  RoombaSensor<BinarySensor>* sleepingBinarySensor;
 
   static RoombaComponent* instance(const std::string& stateTopic,
                                    const std::string& commandTopic,
@@ -100,9 +114,7 @@ class RoombaComponent : public PollingComponent,
     isInSleepMode = !this->roomba.getSensorsList(sensors, sizeof(sensors),
                                                  values, sizeof(values));
 
-    if (this->sleepingBinarySensor->state != isInSleepMode) {
-      this->sleepingBinarySensor->publish_state(isInSleepMode);
-    }
+    this->sleepingBinarySensor->publish_state(isInSleepMode);
 
     if (isInSleepMode) {
       ESP_LOGD(TAG,
@@ -124,38 +136,14 @@ class RoombaComponent : public PollingComponent,
                     charging == Roomba::ChargeStateFullChanrging ||
                     charging == Roomba::ChargeStateTrickleCharging;
 
-    // Only publish new states if there was a change
-    if (this->distanceSensor->state != distance) {
-      this->distanceSensor->publish_state(distance);
-    }
-
-    if (this->voltageSensor->state != voltage) {
-      this->voltageSensor->publish_state(voltage);
-    }
-
-    if (this->currentSensor->state != current) {
-      this->currentSensor->publish_state(current);
-    }
-
-    if (this->chargeSensor->state != charge) {
-      this->chargeSensor->publish_state(charge);
-    }
-
-    if (this->capacitySensor->state != capacity) {
-      this->capacitySensor->publish_state(capacity);
-    }
-
-    if (this->chargingBinarySensor->state != chargingState) {
-      this->chargingBinarySensor->publish_state(chargingState);
-    }
-
-    if (this->dockedBinarySensor->state != dockedState) {
-      this->dockedBinarySensor->publish_state(dockedState);
-    }
-
-    if (this->cleaningBinarySensor->state != cleaningState) {
-      this->cleaningBinarySensor->publish_state(cleaningState);
-    }
+    this->distanceSensor->publishState(distance);
+    this->voltageSensor->publishState(voltage);
+    this->currentSensor->publishState(current);
+    this->chargeSensor->publishState(charge);
+    this->capacitySensor->publishState(capacity);
+    this->chargingBinarySensor->publishState(chargingState);
+    this->dockedBinarySensor->publishState(dockedState);
+    this->cleaningBinarySensor->publishState(cleaningState);
 
     static std::string lastBatteryLevel = "0.0";
     static std::string lastState;
@@ -257,14 +245,14 @@ class RoombaComponent : public PollingComponent,
     this->stateTopic = stateTopic;
     this->commandTopic = commandTopic;
 
-    this->distanceSensor = new Sensor();
-    this->voltageSensor = new Sensor();
-    this->currentSensor = new Sensor();
-    this->chargeSensor = new Sensor();
-    this->capacitySensor = new Sensor();
-    this->chargingBinarySensor = new BinarySensor();
-    this->dockedBinarySensor = new BinarySensor();
-    this->cleaningBinarySensor = new BinarySensor();
-    this->sleepingBinarySensor = new BinarySensor();
+    this->distanceSensor = new RoombaSensor<Sensor>();
+    this->voltageSensor = new RoombaSensor<Sensor>();
+    this->currentSensor = new RoombaSensor<Sensor>();
+    this->chargeSensor = new RoombaSensor<Sensor>();
+    this->capacitySensor = new RoombaSensor<Sensor>();
+    this->chargingBinarySensor = new RoombaSensor<BinarySensor>();
+    this->dockedBinarySensor = new RoombaSensor<BinarySensor>();
+    this->cleaningBinarySensor = new RoombaSensor<BinarySensor>();
+    this->sleepingBinarySensor = new RoombaSensor<BinarySensor>();
   }
 };
