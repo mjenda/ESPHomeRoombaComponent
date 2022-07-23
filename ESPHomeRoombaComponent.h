@@ -207,8 +207,15 @@ class RoombaComponent : public PollingComponent,
 
     wakeUp();
 
-    if (payload == "turn_on" || payload == "turn_off" || payload == "start" ||
-        payload == "stop") {
+    if (this->cleaningBinarySensor->state) {
+      this->roomba.cover();
+      delay(500);
+    }
+
+    if (payload == "turn_on" || payload == "start") {
+      this->roomba.cover();
+    } else if ((payload == "turn_off" || payload == "stop") &&
+               !(this->cleaningBinarySensor->state)) {
       this->roomba.cover();
     } else if (payload == "dock" || payload == "return_to_base") {
       this->roomba.dock();
