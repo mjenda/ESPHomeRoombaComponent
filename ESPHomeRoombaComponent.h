@@ -1,4 +1,7 @@
+#pragma once
+
 #include <Roomba.h>
+#include "Status.h"
 #include "esphome.h"
 
 #include <sstream>
@@ -26,7 +29,7 @@ std::vector<uint8_t> getCustomCommands(const std::string& input) {
 template <typename Base>
 class RoombaSensor : public Base {
  public:
- template <typename T>
+  template <typename T>
   void publishState(T stateToPublish) {
     if (Base::state != stateToPublish || !Base::has_state()) {
       Base::publish_state(stateToPublish);
@@ -38,14 +41,13 @@ static const char* TAG = "component.Roomba";
 class RoombaComponent : public PollingComponent,
                         public CustomMQTTDevice,
                         public CustomAPIDevice {
- protected:
+ private:
   uint8_t brcPin;
   uint32_t updateInterval;
   std::string stateTopic;
   std::string commandTopic;
   Roomba roomba;
-  bool isInSleepMode = true;
-  bool dockedState = false;
+  Status status_;
 
  public:
   RoombaSensor<Sensor>* distanceSensor;
@@ -83,96 +85,29 @@ class RoombaComponent : public PollingComponent,
   }
 
   void update() override {
-    ESP_LOGD(TAG, "Attempting to update sensor values.");
+    status_.OnPendingData();
 
-    int16_t distance;
-    uint16_t voltage;
-    int16_t current;
-    uint16_t charge;
-    uint16_t capacity;
-    uint8_t charging;
-    bool cleaningState;
-    bool chargingState;
-    bool publishJson;
-    // Flush serial buffers
-    while (Serial.available()) {
-      Serial.read();
-    }
-
-    uint8_t sensors[] = {
-        Roomba::SensorDistance,        // 2 bytes, mm, signed
-        Roomba::SensorChargingState,   // 1 byte
-        Roomba::SensorVoltage,         // 2 bytes, mV, unsigned
-        Roomba::SensorCurrent,         // 2 bytes, mA, signed
-        Roomba::SensorBatteryCharge,   // 2 bytes, mAh, unsigned
-        Roomba::SensorBatteryCapacity  // 2 bytes, mAh, unsigned
-    };
-    uint8_t values[] = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
-
-    // Serial reading timeout --
-    // https://community.home-assistant.io/t/add-wifi-to-an-older-roomba/23282/52
-    isInSleepMode = !this->roomba.getSensorsList(sensors, sizeof(sensors),
-                                                 values, sizeof(values));
-
-    this->sleepingBinarySensor->publish_state(isInSleepMode);
-
-    if (isInSleepMode) {
-      ESP_LOGD(TAG,
-               "Unable to read sensors from the roomba. Roomba is probably in "
-               "sleeping mode");
-      return;
-    }
-
-    distance = values[0] * 256 + values[1];
-    voltage = values[3] * 256 + values[4];
-    current = values[5] * 256 + values[6];
-    charge = values[7] * 256 + values[8];
-    capacity = values[9] * 256 + values[10];
-    charging = values[2];
-
-    cleaningState = current < -300;
-    dockedState = current > -50;
-    chargingState = charging == Roomba::ChargeStateReconditioningCharging ||
-                    charging == Roomba::ChargeStateFullChanrging ||
-                    charging == Roomba::ChargeStateTrickleCharging;
-
-    this->distanceSensor->publishState(distance);
-    this->voltageSensor->publishState(voltage);
-    this->currentSensor->publishState(current);
-    this->chargeSensor->publishState(charge);
-    this->capacitySensor->publishState(capacity);
-    this->chargingBinarySensor->publishState(chargingState);
-    this->dockedBinarySensor->publishState(dockedState);
-    this->cleaningBinarySensor->publishState(cleaningState);
-
-    static std::string lastBatteryLevel = "0.0";
-    static std::string lastState;
-    std::string batteryLevel = value_accuracy_to_string(
-        100.0 * ((1.0 * charge) / (1.0 * capacity)), 2);
-    std::string state = cleaningState   ? "cleaning"
-                        : dockedState   ? "docked"
-                        : chargingState ? "idle"
-                                        : "idle";
+    this->distanceSensor->publishState(status_.GetDistance());
+    this->voltageSensor->publishState(status_.GetVoltage());
+    this->currentSensor->publishState(status_.GetCurrent());
+    this->chargeSensor->publishState(status_.GetCharge());
+    this->capacitySensor->publishState(status_.GetCapacity());
+    this->chargingBinarySensor->publishState(status_.GetCharging());
+    this->dockedBinarySensor->publishState(status_.GetChargingState());
+    this->cleaningBinarySensor->publishState(status_.GetCleaningState());
+    this->sleepingBinarySensor->publishState(status_.GetSleepState());
 
     // Publish to the state topic a json document; necessary for the 'state'
     // schema
-    if (batteryLevel != lastBatteryLevel || state != lastState) {
-      lastBatteryLevel = batteryLevel;
-      lastState = state;
-
-      publish_json(this->stateTopic, [=](JsonObject root) {
-        root["battery_level"] = parse_number<float>(batteryLevel).value();
-        ;
-        root["state"] = state;
-        root["fan_speed"] = "off";
-      });
-    }
+    publish_json(this->stateTopic, [=](JsonObject root) {
+      root["battery_level"] = status_.GetBatteryLevel();
+      root["state"] = status_.GetState();
+      root["fan_speed"] = "off";
+    });
   }
 
   void wakeUp() {
-    ESP_LOGD(TAG, "dockedState %d", dockedState);
-    ESP_LOGD(TAG, "isInSleepMode %d", isInSleepMode);
-    if (isInSleepMode) {
+    if (status_.GetSleepState()) {
       digitalWrite(this->brcPin, HIGH);
       delay(100);
       digitalWrite(this->brcPin, LOW);
@@ -184,7 +119,7 @@ class RoombaComponent : public PollingComponent,
     // I docked state roomba likes to be poked after wake up.
     // Calling dock here is harmless but it activates green button and prepares
     // Roomba for other commands
-    if (dockedState) {
+    if (status_.GetDockedState()) {
       this->roomba.dock();
       delay(1000);
     }
@@ -239,7 +174,7 @@ class RoombaComponent : public PollingComponent,
                   const std::string& commandTopic,
                   uint8_t brcPin,
                   uint32_t updateInterval)
-      : PollingComponent(updateInterval), roomba(&Serial, Roomba::Baud115200) {
+      : PollingComponent(updateInterval), roomba(&Serial, Roomba::Baud115200), status_(roomba) {
     this->brcPin = brcPin;
     this->updateInterval = updateInterval;
     this->stateTopic = stateTopic;
