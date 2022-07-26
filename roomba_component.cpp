@@ -24,46 +24,46 @@ std::vector<uint8_t> getCustomCommands(const std::string& input) {
 
 static const char* TAG = "component.Roomba";
 
-RoombaComponent* RoombaComponent::instance(const std::string& stateTopic,
-                                           const std::string& commandTopic,
-                                           uint8_t brcPin,
-                                           uint32_t updateInterval) {
+RoombaComponent* RoombaComponent::instance(const std::string& state_topic,
+                                           const std::string& command_topic,
+                                           uint8_t brc_pin,
+                                           uint32_t update_interval) {
   static RoombaComponent* INSTANCE =
-      new RoombaComponent(stateTopic, commandTopic, brcPin, updateInterval);
+      new RoombaComponent(state_topic, command_topic, brc_pin, update_interval);
   return INSTANCE;
 }
 
 void RoombaComponent::setup() {
   ESP_LOGD(TAG, "Setting up roomba.");
-  pinMode(this->brcPin, OUTPUT);
-  digitalWrite(this->brcPin, HIGH);
+  pinMode(brc_pin_, OUTPUT);
+  digitalWrite(brc_pin_, HIGH);
 
-  this->roomba.start();
+  roomba_.start();
 
   wakeUp(/*initial_wake=*/true);
 
   ESP_LOGD(TAG, "Attempting to subscribe to MQTT.");
 
-  subscribe(this->commandTopic, &RoombaComponent::on_message);
+  subscribe(command_topic_, &RoombaComponent::on_message);
   register_service(&RoombaComponent::onCustomCommand, "command", {"command"});
 }
 
 void RoombaComponent::update() {
   status_.OnPendingData();
 
-  this->distanceSensor->publishState(status_.GetDistance());
-  this->voltageSensor->publishState(status_.GetVoltage());
-  this->currentSensor->publishState(status_.GetCurrent());
-  this->chargeSensor->publishState(status_.GetCharge());
-  this->capacitySensor->publishState(status_.GetCapacity());
-  this->chargingBinarySensor->publishState(status_.GetCharging());
-  this->dockedBinarySensor->publishState(status_.GetChargingState());
-  this->cleaningBinarySensor->publishState(status_.GetCleaningState());
-  this->sleepingBinarySensor->publishState(status_.GetSleepState());
+  distance_sensor_.publishState(status_.GetDistance());
+  voltage_sensor_.publishState(status_.GetVoltage());
+  current_sensor_.publishState(status_.GetCurrent());
+  charge_sensor_.publishState(status_.GetCharge());
+  capacity_sensor_.publishState(status_.GetCapacity());
+  charging_binary_sensor_.publishState(status_.GetCharging());
+  docked_binary_sensor_.publishState(status_.GetChargingState());
+  cleaning_binary_sensor_.publishState(status_.GetCleaningState());
+  sleeping_binary_sensor_.publishState(status_.GetSleepState());
 
   // Publish to the state topic a json document; necessary for the 'state'
   // schema
-  publish_json(this->stateTopic, [=](JsonObject root) {
+  publish_json(state_topic_, [=](JsonObject root) {
     root["battery_level"] = status_.GetBatteryLevel();
     root["state"] = status_.GetState();
     root["fan_speed"] = "off";
@@ -72,11 +72,11 @@ void RoombaComponent::update() {
 
 void RoombaComponent::wakeUp(bool initial_wake) {
   if (status_.GetSleepState()) {
-    digitalWrite(this->brcPin, HIGH);
+    digitalWrite(brc_pin_, HIGH);
     delay(100);
-    digitalWrite(this->brcPin, LOW);
+    digitalWrite(brc_pin_, LOW);
     delay(500);
-    digitalWrite(this->brcPin, HIGH);
+    digitalWrite(brc_pin_, HIGH);
     delay(100);
   }
 
@@ -84,7 +84,7 @@ void RoombaComponent::wakeUp(bool initial_wake) {
   // Calling dock here is harmless but it activates green button and prepares
   // Roomba for other commands
   if (status_.GetDockedState() && !initial_wake) {
-    this->roomba.dock();
+    roomba_.dock();
     delay(1000);
   }
 }
@@ -94,29 +94,29 @@ void RoombaComponent::on_message(const std::string& payload) {
 
   wakeUp();
 
-  if (this->cleaningBinarySensor->state) {
-    this->roomba.cover();
+  if (cleaning_binary_sensor_.state) {
+    roomba_.cover();
     delay(500);
   }
 
   if (payload == "turn_on" || payload == "start") {
-    this->roomba.cover();
+    roomba_.cover();
   } else if ((payload == "turn_off" || payload == "stop") &&
-             !(this->cleaningBinarySensor->state)) {
-    this->roomba.cover();
+             !(cleaning_binary_sensor_.state)) {
+    roomba_.cover();
   } else if (payload == "dock" || payload == "return_to_base") {
-    this->roomba.dock();
+    roomba_.dock();
   } else if (payload == "locate") {
-    this->roomba.playSong(1);
+    roomba_.playSong(1);
   } else if (payload == "spot" || payload == "clean_spot") {
-    this->roomba.spot();
+    roomba_.spot();
   } else {
     ESP_LOGW(TAG, "Received unknown status payload: %s", payload.c_str());
-    this->status_momentary_warning("state", 5000);
+    status_momentary_warning("state", 5000);
   }
 
   delay(500);
-  this->update();
+  update();
 }
 
 // It gets list of uint8_t separated by ',', eg. playSong - 141,0
@@ -133,29 +133,14 @@ void RoombaComponent::onCustomCommand(std::string str) {
   }
 }
 
-RoombaComponent::RoombaComponent(const std::string& stateTopic,
-                                 const std::string& commandTopic,
-                                 uint8_t brcPin,
-                                 uint32_t updateInterval)
-    : PollingComponent(updateInterval),
-      roomba(&Serial, Roomba::Baud115200),
-      status_(roomba) {
-  this->brcPin = brcPin;
-  this->updateInterval = updateInterval;
-  this->stateTopic = stateTopic;
-  this->commandTopic = commandTopic;
-
-  this->distanceSensor = new RoombaSensor<esphome::sensor::Sensor>();
-  this->voltageSensor = new RoombaSensor<esphome::sensor::Sensor>();
-  this->currentSensor = new RoombaSensor<esphome::sensor::Sensor>();
-  this->chargeSensor = new RoombaSensor<esphome::sensor::Sensor>();
-  this->capacitySensor = new RoombaSensor<esphome::sensor::Sensor>();
-  this->chargingBinarySensor =
-      new RoombaSensor<esphome::binary_sensor::BinarySensor>();
-  this->dockedBinarySensor =
-      new RoombaSensor<esphome::binary_sensor::BinarySensor>();
-  this->cleaningBinarySensor =
-      new RoombaSensor<esphome::binary_sensor::BinarySensor>();
-  this->sleepingBinarySensor =
-      new RoombaSensor<esphome::binary_sensor::BinarySensor>();
-}
+RoombaComponent::RoombaComponent(const std::string& state_topic,
+                                 const std::string& command_topic,
+                                 uint8_t brc_pin,
+                                 uint32_t update_interval)
+    : PollingComponent(update_interval),
+      brc_pin_(brc_pin),
+      update_interval_(update_interval),
+      state_topic_(state_topic),
+      command_topic_(command_topic),
+      roomba_(&Serial, Roomba::Baud115200),
+      status_(roomba_) {}

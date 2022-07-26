@@ -3,6 +3,7 @@ esphome:
   platform: ESP8266
   board: d1_mini
   includes:
+    - src/roomba_sensor.h
     - src/status.h
     - src/status.cpp
     - roomba_component.h
@@ -50,7 +51,12 @@ sensor:
  - platform: custom
    lambda: |-
       auto r = ${init}
-      return {r->distanceSensor, r->voltageSensor, r->currentSensor, r->chargeSensor, r->capacitySensor};
+      return {
+        &r->distance_sensor_,
+        &r->voltage_sensor_,
+        &r->current_sensor_,
+        &r->charge_sensor_,
+        &r->capacity_sensor_};
 
    sensors:
      - name: "${name} distance"
@@ -77,10 +83,10 @@ binary_sensor:
     lambda: |-
        auto r = ${init}
        return {
-        r->chargingBinarySensor,
-        r->dockedBinarySensor,
-        r->cleaningBinarySensor,
-        r->sleepingBinarySensor};
+        &r->charging_binary_sensor_,
+        &r->docked_binary_sensor_,
+        &r->cleaning_binary_sensor_,
+        &r->sleeping_binary_sensor_};
 
     binary_sensors:
       - name: "${name} charging"
