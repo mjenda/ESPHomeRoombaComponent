@@ -47,7 +47,7 @@ class RoombaComponent : public esphome::PollingComponent,
 
   void setup() override;
   void update() override;
-  void wakeUp();
+  void wakeUp(bool initial_wake = false);
   void on_message(const std::string& payload);
   void onCustomCommand(std::string str);
 

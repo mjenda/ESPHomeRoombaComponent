@@ -40,7 +40,7 @@ void RoombaComponent::setup() {
 
   this->roomba.start();
 
-  wakeUp();
+  wakeUp(/*initial_wake=*/true);
 
   ESP_LOGD(TAG, "Attempting to subscribe to MQTT.");
 
@@ -70,7 +70,7 @@ void RoombaComponent::update() {
   });
 }
 
-void RoombaComponent::wakeUp() {
+void RoombaComponent::wakeUp(bool initial_wake) {
   if (status_.GetSleepState()) {
     digitalWrite(this->brcPin, HIGH);
     delay(100);
@@ -83,7 +83,7 @@ void RoombaComponent::wakeUp() {
   // I docked state roomba likes to be poked after wake up.
   // Calling dock here is harmless but it activates green button and prepares
   // Roomba for other commands
-  if (status_.GetDockedState()) {
+  if (status_.GetDockedState() && !initial_wake) {
     this->roomba.dock();
     delay(1000);
   }

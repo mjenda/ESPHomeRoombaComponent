@@ -44,5 +44,5 @@ class Status {
  private:
   StatusMessageType status_ = GetStatusMessage();
   Roomba& roomba_;
-  bool isInSleepMode_ = false;
+  bool isInSleepMode_ = true;
 };
