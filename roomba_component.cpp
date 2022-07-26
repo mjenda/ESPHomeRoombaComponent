@@ -94,16 +94,16 @@ void RoombaComponent::on_message(const std::string& payload) {
 
   wakeUp();
 
-  if (cleaning_binary_sensor_.state) {
+  // Stop previous command if in progress
+  if (status_.GetCleaningState()) {
     roomba_.cover();
     delay(500);
   }
 
   if (payload == "turn_on" || payload == "start") {
     roomba_.cover();
-  } else if ((payload == "turn_off" || payload == "stop") &&
-             !(cleaning_binary_sensor_.state)) {
-    roomba_.cover();
+  } else if ((payload == "turn_off" || payload == "stop")) {
+    // Already handled when stopping previous command
   } else if (payload == "dock" || payload == "return_to_base") {
     roomba_.dock();
   } else if (payload == "locate") {
