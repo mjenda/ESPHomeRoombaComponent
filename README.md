@@ -1,7 +1,3 @@
-# Unsupported
-
-Due to a botched surgery, I no longer have a Roomba 650. Leaving it for for future DIYers.
-
 # Roomba Component for ESPHome
 
 A barebones bit of glue between ESPHome and Mike McCauley's Roomba library that enables control of a Roomba 650 via MQTT.
