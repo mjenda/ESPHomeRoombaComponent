@@ -5,7 +5,7 @@ esphome:
   includes:
     - src/status.h
     - src/status.cpp
-    - ESPHomeRoombaComponent.h
+    - roomba_component.h
   libraries:
     - Roomba=https://github.com/Apocrathia/Roomba
   platformio_options:
