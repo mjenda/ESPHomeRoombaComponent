@@ -6,6 +6,7 @@ esphome:
     - src/status.h
     - src/status.cpp
     - roomba_component.h
+    - roomba_component.cpp
   libraries:
     - Roomba=https://github.com/Apocrathia/Roomba
   platformio_options:
