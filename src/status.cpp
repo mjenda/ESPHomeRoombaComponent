@@ -14,8 +14,8 @@ bool Status::OnPendingData() {
     Serial.read();
   }
 
-  auto request = GetStatusRequest();
-  auto status = GetStatusMessage();
+  static auto request = GetStatusRequest();
+  static auto status = GetStatusMessage();
 
   const bool result = roomba_.getSensorsList(request.data(), request.size(),
                                              status.data(), status.size());
