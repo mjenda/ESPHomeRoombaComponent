@@ -34,7 +34,6 @@ RoombaComponent* RoombaComponent::instance(const std::string& state_topic,
 }
 
 void RoombaComponent::setup() {
-  ESP_LOGD(TAG, "Setting up roomba.");
   pinMode(brc_pin_, OUTPUT);
   digitalWrite(brc_pin_, HIGH);
 
@@ -42,9 +41,7 @@ void RoombaComponent::setup() {
 
   wakeUp(/*initial_wake=*/true);
 
-  ESP_LOGD(TAG, "Attempting to subscribe to MQTT.");
-
-  subscribe(command_topic_, &RoombaComponent::on_message);
+  subscribe(command_topic_, &RoombaComponent::onCommand);
   register_service(&RoombaComponent::onCustomCommand, "command", {"command"});
 }
 
@@ -56,13 +53,12 @@ void RoombaComponent::update() {
   current_sensor_.publishState(status_.GetCurrent());
   charge_sensor_.publishState(status_.GetCharge());
   capacity_sensor_.publishState(status_.GetCapacity());
+  distance_since_start_sensor_.publishState(status_.GetDistanceSinceStart());
   charging_binary_sensor_.publishState(status_.GetCharging());
   docked_binary_sensor_.publishState(status_.GetChargingState());
   cleaning_binary_sensor_.publishState(status_.GetCleaningState());
   sleeping_binary_sensor_.publishState(status_.GetSleepState());
 
-  // Publish to the state topic a json document; necessary for the 'state'
-  // schema
   publish_json(state_topic_, [=](JsonObject root) {
     root["battery_level"] = status_.GetBatteryLevel();
     root["state"] = status_.GetState();
@@ -89,7 +85,7 @@ void RoombaComponent::wakeUp(bool initial_wake) {
   }
 }
 
-void RoombaComponent::on_message(const std::string& payload) {
+void RoombaComponent::onCommand(const std::string& payload) {
   ESP_LOGD(TAG, "Got values %s", payload.c_str());
 
   wakeUp();

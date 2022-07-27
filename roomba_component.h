@@ -18,7 +18,7 @@ class RoombaComponent : public esphome::PollingComponent,
   void setup() override;
   void update() override;
   void wakeUp(bool initial_wake = false);
-  void on_message(const std::string& payload);
+  void onCommand(const std::string& payload);
   void onCustomCommand(std::string str);
 
   RoombaSensor distance_sensor_;
@@ -26,6 +26,7 @@ class RoombaComponent : public esphome::PollingComponent,
   RoombaSensor current_sensor_;
   RoombaSensor charge_sensor_;
   RoombaSensor capacity_sensor_;
+  RoombaSensor distance_since_start_sensor_;
   RoombaBinarySensor charging_binary_sensor_;
   RoombaBinarySensor docked_binary_sensor_;
   RoombaBinarySensor cleaning_binary_sensor_;

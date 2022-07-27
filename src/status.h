@@ -27,6 +27,7 @@ class Status {
   Status(Roomba& roomba);
 
   int16_t GetDistance() const;
+  uint32_t GetDistanceSinceStart() const;
   uint16_t GetVoltage() const;
   int16_t GetCurrent() const;
   uint16_t GetCharge() const;
@@ -42,7 +43,10 @@ class Status {
   bool OnPendingData();
 
  private:
+  void UpdateDistance();
+
   StatusMessageType status_ = GetStatusMessage();
   Roomba& roomba_;
+  uint32_t distance_since_start_ = 0;
   bool isInSleepMode_ = true;
 };

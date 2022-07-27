@@ -56,7 +56,8 @@ sensor:
         &r->voltage_sensor_,
         &r->current_sensor_,
         &r->charge_sensor_,
-        &r->capacity_sensor_};
+        &r->capacity_sensor_,
+        &r->distance_since_start_sensor_};
 
    sensors:
      - name: "${name} distance"
@@ -74,6 +75,8 @@ sensor:
      - name: "${name} capacity"
        unit_of_measurement: "mAh"
        accuracy_decimals: 0
+     - name: "${name} distance since start"
+       unit_of_measurement: "cm"
 
 binary_sensor: 
   - platform: status

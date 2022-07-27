@@ -29,11 +29,17 @@ bool Status::OnPendingData() {
 
   status_ = status;
 
+  UpdateDistance();
+
   return true;
 }
 
 int16_t Status::GetDistance() const {
   return status_[0] * 256 + status_[1];
+}
+
+uint32_t Status::GetDistanceSinceStart() const {
+  return distance_since_start_ / 10;
 }
 
 uint16_t Status::GetVoltage() const {
@@ -85,4 +91,12 @@ std::string Status::GetState() const {
          : GetDockedState()   ? "docked"
          : GetChargingState() ? "idle"
                               : "idle";
+}
+
+void Status::UpdateDistance() {
+  if (GetCleaningState()) {
+    distance_since_start_ += std::abs(GetDistance());
+  } else {
+    distance_since_start_ = 0;
+  }
 }
