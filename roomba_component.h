@@ -7,8 +7,7 @@
 #include "status.h"
 
 class RoombaComponent : public esphome::PollingComponent,
-                        public esphome::mqtt::CustomMQTTDevice,
-                        public esphome::api::CustomAPIDevice {
+                        public esphome::mqtt::CustomMQTTDevice {
  public:
   static RoombaComponent* instance(const std::string& state_topic,
                                    const std::string& command_topic,
@@ -17,9 +16,8 @@ class RoombaComponent : public esphome::PollingComponent,
 
   void setup() override;
   void update() override;
-  void wakeUp(bool initial_wake = false);
+  void wakeUp();
   void onCommand(const std::string& payload);
-  void onCustomCommand(std::string str);
 
   RoombaSensor distance_sensor_;
   RoombaSensor voltage_sensor_;
@@ -39,7 +37,6 @@ class RoombaComponent : public esphome::PollingComponent,
                   uint32_t update_interval);
 
   uint8_t brc_pin_;
-  uint32_t update_interval_;
   std::string state_topic_;
   std::string command_topic_;
   Roomba roomba_;

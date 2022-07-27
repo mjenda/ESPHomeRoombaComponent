@@ -20,21 +20,10 @@ bool Status::OnPendingData() {
   const bool result = roomba_.getSensorsList(request.data(), request.size(),
                                              status.data(), status.size());
 
-  DebugStatus(status);
-
-  if (!CheckStatus(status)) {
-    ESP_LOGD(TAG, "Malformed data. Skipping");
+  if (!ValidateNewStatus(result, status)) {
     return false;
   }
 
-  if (result) {
-    sleep_mode_cunter_ = 0;
-  } else {
-    ESP_LOGD(TAG, "Unable to read sensors from the roomba");
-    sleep_mode_cunter_++;
-  }
-
-  is_in_sleep_mode_ = sleep_mode_cunter_ > 2;
   status_ = status;
 
   UpdateDistance();
@@ -86,7 +75,7 @@ bool Status::GetChargingState() const {
 }
 
 bool Status::GetSleepState() const {
-  return is_in_sleep_mode_;
+  return sleep_mode_cunter_ > 2;
 }
 
 float Status::GetBatteryLevel() const {
@@ -109,17 +98,26 @@ void Status::UpdateDistance() {
   }
 }
 
-void Status::DebugStatus(const Status::StatusMessageType& status) const {
-  String raw;
-
-  for (int i = 0; i < status.size(); i++) {
-    raw += " " + String(status[i]);
-  }
-  raw.toUpperCase();
-  ESP_LOGD(TAG, "Status msg: %s", raw.c_str());
-}
-
-bool Status::CheckStatus(const Status::StatusMessageType& status) const {
+bool Status::IsStatusValid(const Status::StatusMessageType& status) const {
+  // Unfortunately there is no checksum, so just simple chcek if voltage or
+  // capacity is not zero.
   return !(status[3] * 256 + status[4] == 0 ||
            status[9] * 256 + status[10] == 0);
+}
+
+bool Status::ValidateNewStatus(bool result,
+                             const Status::StatusMessageType& status) {
+  if (!result) {
+    ESP_LOGD(TAG, "Unable to read sensors from the roomba");
+    sleep_mode_cunter_++;
+    return false;
+  }
+
+  if (!IsStatusValid(status)) {
+    ESP_LOGD(TAG, "Malformed data. Skipping");
+    return false;
+  }
+
+  sleep_mode_cunter_ = 0;
+  return true;
 }
