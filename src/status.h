@@ -48,5 +48,6 @@ class Status {
   StatusMessageType status_ = GetStatusMessage();
   Roomba& roomba_;
   uint32_t distance_since_start_ = 0;
-  bool isInSleepMode_ = true;
+  uint8_t sleep_mode_cunter_ = 0;
+  bool is_in_sleep_mode_ = true;
 };

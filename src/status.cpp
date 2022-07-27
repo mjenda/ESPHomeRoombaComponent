@@ -17,16 +17,17 @@ bool Status::OnPendingData() {
   auto request = GetStatusRequest();
   auto status = GetStatusMessage();
 
-  isInSleepMode_ = !roomba_.getSensorsList(request.data(), request.size(),
-                                           status.data(), status.size());
+  const bool result = roomba_.getSensorsList(request.data(), request.size(),
+                                             status.data(), status.size());
 
-  if (isInSleepMode_) {
-    ESP_LOGD(TAG,
-             "Unable to read sensors from the roomba. Roomba is probably in "
-             "sleeping mode");
-    return false;
+  if (result) {
+    sleep_mode_cunter_ = 0;
+  } else {
+    ESP_LOGD(TAG, "Unable to read sensors from the roomba");
+    sleep_mode_cunter_++;
   }
 
+  is_in_sleep_mode_ = sleep_mode_cunter_ > 2;
   status_ = status;
 
   UpdateDistance();
@@ -78,7 +79,7 @@ bool Status::GetChargingState() const {
 }
 
 bool Status::GetSleepState() const {
-  return isInSleepMode_;
+  return is_in_sleep_mode_;
 }
 
 float Status::GetBatteryLevel() const {
