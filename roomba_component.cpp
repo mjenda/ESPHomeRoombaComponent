@@ -51,27 +51,28 @@ void RoombaComponent::setup() {
 void RoombaComponent::update() {
   status_.OnPendingData();
 
-  distance_sensor_.publishState(status_.GetDistance());
-  voltage_sensor_.publishState(status_.GetVoltage());
-  current_sensor_.publishState(status_.GetCurrent());
-  charge_sensor_.publishState(status_.GetCharge());
-  capacity_sensor_.publishState(status_.GetCapacity());
-  charging_binary_sensor_.publishState(status_.GetCharging());
-  docked_binary_sensor_.publishState(status_.GetChargingState());
-  cleaning_binary_sensor_.publishState(status_.GetCleaningState());
-  sleeping_binary_sensor_.publishState(status_.GetSleepState());
+  distance_sensor_.publishState(status_.Get(Sensors::Distance));
+  voltage_sensor_.publishState(status_.Get(Sensors::Voltage));
+  current_sensor_.publishState(status_.Get(Sensors::Current));
+  charge_sensor_.publishState(status_.Get(Sensors::Charge));
+  capacity_sensor_.publishState(status_.Get(Sensors::Capacity));
+  charging_binary_sensor_.publishState(status_.Get(Sensors::Charging));
+  docked_binary_sensor_.publishState(status_.Get(BinarySensors::ChargingState));
+  cleaning_binary_sensor_.publishState(
+      status_.Get(BinarySensors::CleaningState));
+  sleeping_binary_sensor_.publishState(status_.Get(BinarySensors::SleepState));
 
   // Publish to the state topic a json document; necessary for the 'state'
   // schema
   publish_json(state_topic_, [=](JsonObject root) {
-    root["battery_level"] = status_.GetBatteryLevel();
+    root["battery_level"] = status_.Get(Sensors::BatteryLevel);
     root["state"] = status_.GetState();
     root["fan_speed"] = "off";
   });
 }
 
 void RoombaComponent::wakeUp(bool initial_wake) {
-  if (status_.GetSleepState()) {
+  if (status_.Get(BinarySensors::SleepState)) {
     digitalWrite(brc_pin_, HIGH);
     delay(100);
     digitalWrite(brc_pin_, LOW);
@@ -83,7 +84,7 @@ void RoombaComponent::wakeUp(bool initial_wake) {
   // I docked state roomba likes to be poked after wake up.
   // Calling dock here is harmless but it activates green button and prepares
   // Roomba for other commands
-  if (status_.GetDockedState() && !initial_wake) {
+  if (status_.Get(BinarySensors::DockedState) && !initial_wake) {
     roomba_.dock();
     delay(1000);
   }
@@ -95,7 +96,7 @@ void RoombaComponent::on_message(const std::string& payload) {
   wakeUp();
 
   // Stop previous command if in progress
-  if (status_.GetCleaningState()) {
+  if (status_.Get(BinarySensors::CleaningState)) {
     roomba_.cover();
     delay(500);
   }

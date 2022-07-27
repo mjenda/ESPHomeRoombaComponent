@@ -3,6 +3,7 @@ esphome:
   platform: ESP8266
   board: d1_mini
   includes:
+    - src/constants.h
     - src/roomba_sensor.h
     - src/status.h
     - src/status.cpp
