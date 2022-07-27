@@ -44,6 +44,8 @@ class Status {
 
  private:
   void UpdateDistance();
+  void DebugStatus(const StatusMessageType& status) const;
+  bool CheckStatus(const StatusMessageType& status) const;
 
   StatusMessageType status_ = GetStatusMessage();
   Roomba& roomba_;

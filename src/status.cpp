@@ -20,6 +20,13 @@ bool Status::OnPendingData() {
   const bool result = roomba_.getSensorsList(request.data(), request.size(),
                                              status.data(), status.size());
 
+  DebugStatus(status);
+
+  if (!CheckStatus(status)) {
+    ESP_LOGD(TAG, "Malformed data. Skipping");
+    return false;
+  }
+
   if (result) {
     sleep_mode_cunter_ = 0;
   } else {
@@ -100,4 +107,19 @@ void Status::UpdateDistance() {
   } else {
     distance_since_start_ = 0;
   }
+}
+
+void Status::DebugStatus(const Status::StatusMessageType& status) const {
+  String raw;
+
+  for (int i = 0; i < status.size(); i++) {
+    raw += " " + String(status[i]);
+  }
+  raw.toUpperCase();
+  ESP_LOGD(TAG, "Status msg: %s", raw.c_str());
+}
+
+bool Status::CheckStatus(const Status::StatusMessageType& status) const {
+  return !(status[3] * 256 + status[4] == 0 ||
+           status[9] * 256 + status[10] == 0);
 }
