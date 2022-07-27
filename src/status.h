@@ -1,7 +1,6 @@
 #pragma once
 
-#include "Roomba.h"
-#include "constants.h"
+#include <Roomba.h>
 #include "esphome.h"
 
 namespace {
@@ -27,8 +26,17 @@ class Status {
 
   Status(Roomba& roomba);
 
-  float Get(Sensors sensor) const;
-  bool Get(BinarySensors sensor) const;
+  int16_t GetDistance() const;
+  uint16_t GetVoltage() const;
+  int16_t GetCurrent() const;
+  uint16_t GetCharge() const;
+  uint16_t GetCapacity() const;
+  uint8_t GetCharging() const;
+  bool GetCleaningState() const;
+  bool GetChargingState() const;
+  bool GetDockedState() const;
+  bool GetSleepState() const;
+  float GetBatteryLevel() const;
   std::string GetState() const;
 
   bool OnPendingData();

@@ -2,6 +2,8 @@
 
 #include "esphome.h"
 
+
+
 // Sensor decorator, which publishes state if it has changed or has not been
 // initialized yet
 template <typename Base>
