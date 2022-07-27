@@ -55,7 +55,7 @@ void RoombaComponent::update() {
   capacity_sensor_.publishState(status_.GetCapacity());
   distance_since_start_sensor_.publishState(status_.GetDistanceSinceStart());
   charging_binary_sensor_.publishState(status_.GetCharging());
-  docked_binary_sensor_.publishState(status_.GetChargingState());
+  docked_binary_sensor_.publishState(status_.GetDockedState());
   cleaning_binary_sensor_.publishState(status_.GetCleaningState());
   sleeping_binary_sensor_.publishState(status_.GetSleepState());
 
