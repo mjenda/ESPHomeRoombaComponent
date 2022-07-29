@@ -44,10 +44,10 @@ class Status {
 
  private:
   void UpdateDistance();
-  bool IsStatusValid(const StatusMessageType& status) const;
-  bool ValidateNewStatus(bool result, const StatusMessageType& status);
+  bool IsStatusValid() const;
 
   StatusMessageType status_ = GetStatusMessage();
+  StatusMessageType previous_status_ = GetStatusMessage();
   Roomba& roomba_;
   uint32_t distance_since_start_ = 0;
   uint8_t sleep_mode_cunter_ = 99;

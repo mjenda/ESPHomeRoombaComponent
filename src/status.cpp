@@ -15,17 +15,25 @@ bool Status::OnPendingData() {
   }
 
   static auto request = GetStatusRequest();
-  static auto status = GetStatusMessage();
+  previous_status_ = status_;
 
   const bool result = roomba_.getSensorsList(request.data(), request.size(),
-                                             status.data(), status.size());
+                                             status_.data(), status_.size());
 
-  if (!ValidateNewStatus(result, status)) {
+  if (!result) {
+    ESP_LOGD(TAG, "Unable to read sensors from the roomba");
+    status_ = previous_status_;
+    sleep_mode_cunter_++;
     return false;
   }
 
-  status_ = status;
+  if (!IsStatusValid()) {
+    ESP_LOGD(TAG, "Malformed data. Skipping");
+    status_ = previous_status_;
+    return false;
+  }
 
+  sleep_mode_cunter_ = 0;
   UpdateDistance();
 
   return true;
@@ -98,26 +106,10 @@ void Status::UpdateDistance() {
   }
 }
 
-bool Status::IsStatusValid(const Status::StatusMessageType& status) const {
-  // Unfortunately there is no checksum, so just simple chcek if voltage or
-  // capacity is not zero.
-  return !(status[3] * 256 + status[4] == 0 ||
-           status[9] * 256 + status[10] == 0);
-}
-
-bool Status::ValidateNewStatus(bool result,
-                             const Status::StatusMessageType& status) {
-  if (!result) {
-    ESP_LOGD(TAG, "Unable to read sensors from the roomba");
-    sleep_mode_cunter_++;
-    return false;
-  }
-
-  if (!IsStatusValid(status)) {
-    ESP_LOGD(TAG, "Malformed data. Skipping");
-    return false;
-  }
-
-  sleep_mode_cunter_ = 0;
-  return true;
+bool Status::IsStatusValid() const {
+  // Unfortunately there is no checksum, so just simple check validity of some
+  // values
+  const auto capacity = GetCapacity();
+  return !(GetVoltage() == 0 || capacity == 0 || capacity > 7000 ||
+           GetCharge() > capacity + 100);
 }
