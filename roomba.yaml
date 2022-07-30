@@ -40,7 +40,8 @@ logger:
 
 ota:
 
-api:
+# Uncomment for HA api
+# api:
 
 custom_component:
   - lambda: |-
